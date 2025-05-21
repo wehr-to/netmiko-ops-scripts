@@ -17,7 +17,7 @@ def generate_acl_line(cidr):
         return {"error": str(e)}
 
 
-# Subnet a larger block
+# Subnet a larger block (IPv4)
 def subnet_block(cidr, new_prefix):
     """
     Subdivide a CIDR block into smaller subnets.
@@ -30,3 +30,16 @@ def subnet_block(cidr, new_prefix):
     except ValueError as e:
         return {"error": str(e)}
       
+# Subnet a block for (IPv6)
+def subnet_ipv6_block(cidr, new_prefix=64):
+    try:
+        net = ipaddress.ip_network(cidr, strict=False)
+        if not isinstance(net, ipaddress.IPv6Network):
+            return {"error": "Only IPv6 networks are supported."}
+
+        subnets = list(net.subnets(new_prefix=new_prefix))
+        return [str(subnet) for subnet in subnets]
+    except ValueError as e:
+        return {"error": str(e)}
+
+# All scripts are cisco specific 
