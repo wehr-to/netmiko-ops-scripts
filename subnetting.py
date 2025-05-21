@@ -13,5 +13,4 @@ def summarize_network(cidr):
     except ValueError as e:
         return {"error": str(e)}
 
-# please note this is a hypothetical script
-# Include breakdown of the code snippet
+# This script automates subnet calculations I originally learned by hand for the CCNA. It reinforces what I know while showing how I’d apply that knowledge in production.
