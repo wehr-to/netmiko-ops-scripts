@@ -1,4 +1,4 @@
-# Backup running-config to local storage
+# Backup running-config to local storage / Cisco specific script
 # Output creates a backups/ folder if it does not already exist, the output itself is saved along the lines of "R1_running-config_20240520-230133.txt"
 
 from netmiko import ConnectHandler
