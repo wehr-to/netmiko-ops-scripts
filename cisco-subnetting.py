@@ -1,3 +1,5 @@
+# all scripts are cisco specific
+
 # Cisco ACL Formatter (IPv4 only)
 import ipaddress
 
@@ -34,4 +36,3 @@ def subnet_ipv6_block(cidr, new_prefix=64):
     except ValueError as e:
         return {"error": str(e)}
 
-# All scripts are cisco specific 
