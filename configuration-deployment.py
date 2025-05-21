@@ -5,6 +5,7 @@ from netmiko import ConnectHandler
 from datetime import datetime
 import os
 
+# Define Cisco IOS Device Credentials
 device = {
     "device_type": "cisco_ios",
     "ip": "192.168.1.1",
@@ -14,18 +15,23 @@ device = {
 
 def backup_running_config(device):
     try:
+        # Establish SSH connectionto the device
         connection = ConnectHandler(**device)
         hostname = connection.find_prompt().strip("#>")
 
         print(f"Connected to {hostname} ({device['ip']})")
 
+        # Run command to retrieve the running configuration
         output = connection.send_command("show running-config")
 
+        # Generate filename with timestand and hostname
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         filename = f"{hostname}_running-config_{timestamp}.txt"
 
+        # Ensure the backups/ directory exists
         os.makedirs("backups", exist_ok=True)
 
+        # Save config to file
         with open(f"backups/{filename}", "w") as file:
             file.write(output)
 
