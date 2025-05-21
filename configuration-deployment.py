@@ -15,7 +15,7 @@ device = {
 
 def backup_running_config(device):
     try:
-        # Establish SSH connectionto the device
+        # Establish SSH connection to the device
         connection = ConnectHandler(**device)
         hostname = connection.find_prompt().strip("#>")
 
@@ -24,7 +24,7 @@ def backup_running_config(device):
         # Run command to retrieve the running configuration
         output = connection.send_command("show running-config")
 
-        # Generate filename with timestand and hostname
+        # Generate filename with timestamp and hostname
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         filename = f"{hostname}_running-config_{timestamp}.txt"
 
