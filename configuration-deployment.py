@@ -38,6 +38,43 @@ def backup_running_config(device):
 if __name__ == "__main__":
     backup_running_config(device)
 
+# Push a standardized banner to all devices
+# Script is cisco specific 
+
+from netmiko import ConnectHandler
+from datetime import datetime
+
+device = {
+    "device_type": "cisco_ios",
+    "ip": "192.168.1.1",
+    "username": "admin",
+    "password": "cisco123"
+}
+
+banner_message = "Unauthorized access is prohibited. All activity is monitored."
+
+def push_banner(device, message):
+    try:
+        connection = ConnectHandler(**device)
+        hostname = connection.find_prompt().strip("#>")
+
+        print(f"[+] Connected to {hostname} ({device['ip']})")
+
+        commands = [
+            f"banner motd ^{message}^"
+        ]
+
+        output = connection.send_config_set(commands)
+        print(f"[+] Banner pushed to {hostname}\n{output}")
+        connection.save_config()
+        connection.disconnect()
+
+    except Exception as e:
+        print(f"[!] Failed to configure banner on {device['ip']}: {e}")
+
+if __name__ == "__main__":
+    push_banner(device, banner_message)
+
 
 
 
