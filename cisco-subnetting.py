@@ -2,10 +2,6 @@
 import ipaddress
 
 def generate_acl_line(cidr):
-    """
-    Generate a Cisco standard access-list line from a CIDR block.
-    Example: "192.168.1.0/24" ➝ "access-list 10 permit 192.168.1.0 0.0.0.255"
-    """
     try:
         net = ipaddress.ip_network(cidr, strict=False)
         if not isinstance(net, ipaddress.IPv4Network):
@@ -19,10 +15,6 @@ def generate_acl_line(cidr):
 
 # Subnet a larger block (IPv4)
 def subnet_block(cidr, new_prefix):
-    """
-    Subdivide a CIDR block into smaller subnets.
-    Example: ("192.168.0.0/24", 26) ➝ Four /26 blocks
-    """
     try:
         net = ipaddress.ip_network(cidr, strict=False)
         subnets = list(net.subnets(new_prefix=new_prefix))
