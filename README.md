@@ -4,7 +4,6 @@ A collection of 50+ real-world network automation scripts using Netmiko. Built t
 Future Scripts: 
 
 🔧 Configuration & Deployment
-Backup running-config to local storage
 Push a standardized banner to all devices
 Automate hostname updates from a CSV
 Configure interface descriptions in bulk
