@@ -14,3 +14,4 @@ def summarize_network(cidr):
         return {"error": str(e)}
 
 # This script automates subnet calculations I originally learned by hand for the CCNA. It reinforces what I know while showing how I’d apply that knowledge in production.
+# Capable of handling IPv4 and IPv6 logic
