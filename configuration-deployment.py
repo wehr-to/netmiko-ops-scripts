@@ -296,38 +296,43 @@ def main():
 if __name__ == "__main__":
     main()
 
-# 6: Push SNMP configurations to switches
+# 6: Push SNMP configurations to switches / SNMPv3 / Cisco Specific
 
 import csv
 from netmiko import ConnectHandler
 from netmiko.ssh_exception import NetMikoTimeoutException, NetMikoAuthenticationException
 
 # Define the SNMP configuration to apply
-snmp_config = [
-    "snmp-server community public RO",
-    "snmp-server community private RW",
+import csv
+from netmiko import ConnectHandler
+from netmiko.ssh_exception import NetMikoTimeoutException, NetMikoAuthenticationException
+
+# Define SNMPv3 config commands
+snmpv3_config = [
+    "snmp-server group SECUREGROUP v3 priv",
+    "snmp-server user NETENG SECUREGROUP v3 auth sha SNMPAuthPass123 priv aes 128 SNMPPrivPass456",
     "snmp-server location DataCenter1",
     "snmp-server contact netadmin@example.com",
 ]
 
-def push_snmp_config(device):
+def push_snmpv3_config(device):
     try:
         connection = ConnectHandler(**device)
         hostname = connection.find_prompt().strip("#>")
         print(f"[+] Connected to {hostname} ({device['ip']})")
 
-        output = connection.send_config_set(snmp_config)
-        print(f"[+] SNMP configuration sent:\n{output}")
+        output = connection.send_config_set(snmpv3_config)
+        print(f"[+] SNMPv3 configuration pushed to {hostname}:\n{output}")
 
         connection.save_config()
-        print(f"[+] Config saved on {hostname}.\n")
+        print(f"[+] Configuration saved on {hostname}.\n")
         connection.disconnect()
 
     except (NetMikoTimeoutException, NetMikoAuthenticationException) as e:
         print(f"[-] Connection failed to {device['ip']}: {e}")
 
 def main():
-    with open("snmp_switches.csv", mode="r") as file:
+    with open("snmpv3_switches.csv", mode="r") as file:
         reader = csv.DictReader(file)
         for row in reader:
             device = {
@@ -337,18 +342,394 @@ def main():
                 "use_keys": True,
                 "key_file": row.get("key_file", "/home/youruser/.ssh/id_rsa")
             }
-            push_snmp_config(device)
+            push_snmpv3_config(device)
 
 if __name__ == "__main__":
     main()
 
-# 7: Enable/disable specific interfaces in bulk
-# 8: Push AAA authentication config
-# 9: Set up logging servers on all core devices
-# 10: Apply a basic port-security config to all access ports
-# 11: Configure VLANs based on site template
-# 12: Deploy interface IP addresses from an Excel or YAML file
+#7: Enable/disable specific interfaces in bulk
 
+import csv
+from collections import defaultdict
+from netmiko import ConnectHandler
+from netmiko.ssh_exception import NetMikoTimeoutException, NetMikoAuthenticationException
+
+def toggle_interfaces(device_info, interface_actions):
+    device = {
+        "device_type": "cisco_ios",
+        "ip": device_info["ip"],
+        "username": device_info["username"],
+        "use_keys": True,
+        "key_file": device_info["key_file"]
+    }
+
+    try:
+        connection = ConnectHandler(**device)
+        hostname = connection.find_prompt().strip("#>")
+        print(f"[+] Connected to {hostname} ({device['ip']})")
+
+        config_commands = []
+        for intf, action in interface_actions:
+            config_commands.append(f"interface {intf}")
+            if action.lower() == "disable":
+                config_commands.append("shutdown")
+            elif action.lower() == "enable":
+                config_commands.append("no shutdown")
+            else:
+                print(f"[!] Unknown action '{action}' for {intf}")
+
+        output = connection.send_config_set(config_commands)
+        print(f"[+] Applied interface changes on {hostname}:\n{output}")
+        connection.save_config()
+        print(f"[+] Configuration saved on {hostname}.\n")
+
+        connection.disconnect()
+
+    except (NetMikoTimeoutException, NetMikoAuthenticationException) as e:
+        print(f"[-] Connection failed to {device['ip']}: {e}")
+
+def main():
+    device_interface_map = defaultdict(list)
+
+    with open("interface_toggle.csv", mode="r") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            key = (row["ip"], row["username"], row["key_file"])
+            device_interface_map[key].append((row["interface"], row["action"]))
+
+    for (ip, username, key_file), interfaces in device_interface_map.items():
+        device_info = {
+            "ip": ip,
+            "username": username,
+            "key_file": key_file
+        }
+        toggle_interfaces(device_info, interfaces)
+
+if __name__ == "__main__":
+    main()
+
+
+# 8: Push AAA authentication config
+
+import csv
+from netmiko import ConnectHandler
+from netmiko.ssh_exception import NetMikoTimeoutException, NetMikoAuthenticationException
+
+# Customize this with your actual RADIUS server details
+RADIUS_SERVER = "192.168.100.10"
+RADIUS_SECRET = "RADIUS_SECRET123"
+
+aaa_config = [
+    "aaa new-model",
+    "aaa authentication login default group radius local",
+    "aaa authorization exec default group radius local",
+    f"radius-server host {RADIUS_SERVER} auth-port 1812 acct-port 1813 key {RADIUS_SECRET}"
+]
+
+def push_aaa_config(device):
+    try:
+        connection = ConnectHandler(**device)
+        hostname = connection.find_prompt().strip("#>")
+        print(f"[+] Connected to {hostname} ({device['ip']})")
+
+        output = connection.send_config_set(aaa_config)
+        print(f"[+] AAA config pushed to {hostname}:\n{output}")
+
+        connection.save_config()
+        print(f"[+] Config saved on {hostname}.\n")
+        connection.disconnect()
+
+    except (NetMikoTimeoutException, NetMikoAuthenticationException) as e:
+        print(f"[-] Connection failed to {device['ip']}: {e}")
+
+def main():
+    with open("aaa_devices.csv", mode="r") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            device = {
+                "device_type": "cisco_ios",
+                "ip": row["ip"],
+                "username": row["username"],
+                "use_keys": True,
+                "key_file": row.get("key_file", "/home/youruser/.ssh/id_rsa")
+            }
+            push_aaa_config(device)
+
+if __name__ == "__main__":
+    main()
+
+# 9: Set up logging servers on all core devices
+
+import csv
+from netmiko import ConnectHandler
+from netmiko.ssh_exception import NetMikoAuthenticationException, NetMikoTimeoutException
+
+# Define your syslog/logging server(s) and optional config
+LOGGING_SERVERS = [
+    "logging host 192.168.200.10",
+    "logging trap warnings",
+    "service timestamps log datetime msec",
+    "logging buffered 8192"
+]
+
+def configure_logging(device):
+    try:
+        connection = ConnectHandler(**device)
+        hostname = connection.find_prompt().strip("#>")
+        print(f"[+] Connected to {hostname} ({device['ip']})")
+
+        output = connection.send_config_set(LOGGING_SERVERS)
+        print(f"[+] Logging config pushed to {hostname}:\n{output}")
+
+        connection.save_config()
+        print(f"[+] Configuration saved on {hostname}.\n")
+        connection.disconnect()
+
+    except (NetMikoTimeoutException, NetMikoAuthenticationException) as e:
+        print(f"[-] Failed to connect to {device['ip']}: {e}")
+
+def main():
+    with open("core_devices.csv", mode="r") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            device = {
+                "device_type": "cisco_ios",
+                "ip": row["ip"],
+                "username": row["username"],
+                "use_keys": True,
+                "key_file": row.get("key_file", "/home/youruser/.ssh/id_rsa")
+            }
+            configure_logging(device)
+
+if __name__ == "__main__":
+    main()
+
+#10: Apply a basic port-security config to all access ports
+
+import csv
+from netmiko import ConnectHandler
+from netmiko.ssh_exception import NetMikoAuthenticationException, NetMikoTimeoutException
+
+# Port-security commands to apply to each access port
+port_security_config = [
+    "switchport port-security",
+    "switchport port-security maximum 2",
+    "switchport port-security violation restrict",
+    "switchport port-security mac-address sticky"
+]
+
+def get_access_ports(connection):
+    output = connection.send_command("show interfaces switchport", use_textfsm=True)
+    access_ports = []
+    for intf in output:
+        if intf["switchport_mode"] == "access":
+            access_ports.append(intf["interface"])
+    return access_ports
+
+def apply_port_security(device):
+    try:
+        connection = ConnectHandler(**device)
+        hostname = connection.find_prompt().strip("#>")
+        print(f"[+] Connected to {hostname} ({device['ip']})")
+
+        access_ports = get_access_ports(connection)
+        print(f"[+] Found {len(access_ports)} access port(s) on {hostname}")
+
+        if not access_ports:
+            print(f"[!] No access ports found on {hostname}. Skipping.")
+            connection.disconnect()
+            return
+
+        config_commands = []
+        for port in access_ports:
+            config_commands.append(f"interface {port}")
+            config_commands.extend(port_security_config)
+
+        output = connection.send_config_set(config_commands)
+        print(f"[+] Port-security applied on {hostname}:\n{output}")
+
+        connection.save_config()
+        print(f"[+] Configuration saved on {hostname}.\n")
+        connection.disconnect()
+
+    except (NetMikoTimeoutException, NetMikoAuthenticationException) as e:
+        print(f"[-] Failed to connect to {device['ip']}: {e}")
+
+def main():
+    with open("portsecurity_switches.csv", mode="r") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            device = {
+                "device_type": "cisco_ios",
+                "ip": row["ip"],
+                "username": row["username"],
+                "use_keys": True,
+                "key_file": row["key_file"]
+            }
+            apply_port_security(device)
+
+if __name__ == "__main__":
+    main()
+
+#11: Configure VLANs based on site template
+
+import csv
+from collections import defaultdict
+from netmiko import ConnectHandler
+from netmiko.ssh_exception import NetMikoTimeoutException, NetMikoAuthenticationException
+
+def configure_vlans(device_info, vlan_list):
+    device = {
+        "device_type": "cisco_ios",
+        "ip": device_info["ip"],
+        "username": device_info["username"],
+        "use_keys": True,
+        "key_file": device_info["key_file"]
+    }
+
+    try:
+        connection = ConnectHandler(**device)
+        hostname = connection.find_prompt().strip("#>")
+        print(f"[+] Connected to {hostname} ({device['ip']})")
+
+        commands = []
+        for vlan_id, vlan_name in vlan_list:
+            commands.append(f"vlan {vlan_id}")
+            commands.append(f"name {vlan_name}")
+
+        output = connection.send_config_set(commands)
+        print(f"[+] VLANs configured on {hostname}:\n{output}")
+
+        connection.save_config()
+        print(f"[+] Configuration saved on {hostname}.\n")
+        connection.disconnect()
+
+    except (NetMikoTimeoutException, NetMikoAuthenticationException) as e:
+        print(f"[-] Failed to connect to {device['ip']}: {e}")
+
+def main():
+    site_vlan_map = defaultdict(list)
+
+    with open("site_vlan_template.csv", mode="r") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            key = (row["ip"], row["username"], row["key_file"])
+            site_vlan_map[key].append((row["vlan_id"], row["vlan_name"]))
+
+    for (ip, username, key_file), vlan_list in site_vlan_map.items():
+        device_info = {
+            "ip": ip,
+            "username": username,
+            "key_file": key_file
+        }
+        configure_vlans(device_info, vlan_list)
+
+if __name__ == "__main__":
+    main()
+
+#12: Deploy interface IP addresses from an Excel or YAML file
+
+#YAML
+import yaml
+from netmiko import ConnectHandler
+from netmiko.ssh_exception import NetMikoTimeoutException, NetMikoAuthenticationException
+
+def configure_interfaces(device):
+    try:
+        connection = ConnectHandler(**device)
+        hostname = connection.find_prompt().strip("#>")
+        print(f"[+] Connected to {hostname} ({device['ip']})")
+
+        commands = []
+        for intf in device["interfaces"]:
+            commands.append(f"interface {intf['interface']}")
+            commands.append(f"ip address {intf['ip_address']} {intf['subnet_mask']}")
+            commands.append("no shutdown")
+
+        output = connection.send_config_set(commands)
+        print(f"[+] IP addresses applied on {hostname}:\n{output}")
+
+        connection.save_config()
+        print(f"[+] Configuration saved on {hostname}.\n")
+        connection.disconnect()
+
+    except (NetMikoTimeoutException, NetMikoAuthenticationException) as e:
+        print(f"[-] Failed to connect to {device['ip']}: {e}")
+
+def main():
+    with open("interface_ips.yaml", "r") as f:
+        devices = yaml.safe_load(f)
+
+    for device in devices:
+        device_config = {
+            "device_type": "cisco_ios",
+            "ip": device["ip"],
+            "username": device["username"],
+            "use_keys": True,
+            "key_file": device["key_file"],
+            "interfaces": device["interfaces"]
+        }
+        configure_interfaces(device_config)
+
+if __name__ == "__main__":
+    main()
+
+#Excel
+import openpyxl
+from collections import defaultdict
+from netmiko import ConnectHandler
+from netmiko.ssh_exception import NetMikoTimeoutException, NetMikoAuthenticationException
+
+def configure_interfaces(device_info, interfaces):
+    device = {
+        "device_type": "cisco_ios",
+        "ip": device_info["ip"],
+        "username": device_info["username"],
+        "use_keys": True,
+        "key_file": device_info["key_file"]
+    }
+
+    try:
+        connection = ConnectHandler(**device)
+        hostname = connection.find_prompt().strip("#>")
+        print(f"[+] Connected to {hostname} ({device['ip']})")
+
+        commands = []
+        for intf, ip_addr, mask in interfaces:
+            commands.append(f"interface {intf}")
+            commands.append(f"ip address {ip_addr} {mask}")
+            commands.append("no shutdown")
+
+        output = connection.send_config_set(commands)
+        print(f"[+] IP addresses applied on {hostname}:\n{output}")
+
+        connection.save_config()
+        print(f"[+] Configuration saved on {hostname}.\n")
+        connection.disconnect()
+
+    except (NetMikoTimeoutException, NetMikoAuthenticationException) as e:
+        print(f"[-] Failed to connect to {device['ip']}: {e}")
+
+def main():
+    wb = openpyxl.load_workbook("interface_ips.xlsx")
+    sheet = wb.active
+
+    device_map = defaultdict(list)
+    for row in sheet.iter_rows(min_row=2, values_only=True):
+        ip, username, key_file, interface, ip_address, subnet_mask = row
+        device_key = (ip, username, key_file)
+        device_map[device_key].append((interface, ip_address, subnet_mask))
+
+    for (ip, username, key_file), interfaces in device_map.items():
+        device_info = {
+            "ip": ip,
+            "username": username,
+            "key_file": key_file
+        }
+        configure_interfaces(device_info, interfaces)
+
+if __name__ == "__main__":
+    main()
 
 
 
