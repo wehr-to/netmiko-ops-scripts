@@ -184,7 +184,68 @@ def main():
 if __name__ == "__main__":
     main()
 
+# 4: Configure interface descriptions in bulk / cisco specific 
 
+# interface_descriptions.csv 
+ip,username,interface,description
+192.168.1.1,admin,GigabitEthernet0/1,Link to Core Switch
+192.168.1.1,admin,GigabitEthernet0/2,Server Farm Uplink
+192.168.1.2,admin,GigabitEthernet0/1,Access Switch Connection
+
+import csv
+from collections import defaultdict
+from netmiko import ConnectHandler
+from netmiko.ssh_exception import NetMikoAuthenticationException, NetMikoTimeoutException
+
+def configure_descriptions(device_info, interface_cmds):
+    device = {
+        "device_type": "cisco_ios",
+        "ip": device_info["ip"],
+        "username": device_info["username"],
+        "use_keys": True,
+        "key_file": device_info.get("key_file", "/home/youruser/.ssh/id_rsa"),  # default key file
+    }
+
+    try:
+        connection = ConnectHandler(**device)
+        hostname = connection.find_prompt().strip("#>")
+        print(f"[+] Connected to {hostname} ({device['ip']})")
+
+        full_commands = []
+        for intf, desc in interface_cmds:
+            full_commands.append(f"interface {intf}")
+            full_commands.append(f"description {desc}")
+
+        connection.send_config_set(full_commands)
+        connection.save_config()
+        print(f"[+] Updated {len(interface_cmds)} interface(s) on {hostname}.")
+
+        connection.disconnect()
+
+    except (NetMikoTimeoutException, NetMikoAuthenticationException) as e:
+        print(f"[-] Failed to connect to {device['ip']}: {e}")
+
+def main():
+    device_interface_map = defaultdict(list)
+
+    with open("interface_descriptions.csv", mode="r") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            key = (row["ip"], row["username"], row.get("key_file", "/home/youruser/.ssh/id_rsa"))
+            device_interface_map[key].append((row["interface"], row["description"]))
+
+    for (ip, username, key_file), interfaces in device_interface_map.items():
+        device_info = {
+            "ip": ip,
+            "username": username,
+            "key_file": key_file
+        }
+        configure_descriptions(device_info, interfaces)
+
+if __name__ == "__main__":
+    main()
+
+# 5: 
 
 
 
