@@ -171,86 +171,93 @@ def main():
 if __name__ == "__main__":
     main()
 
-#3 Group devices by platform / REFACTOR TO THE END
+#3 Group devices by platform 
 
+import re
 import csv
+import os
+import logging
+import argparse
+from typing import List, Dict, Optional
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from netmiko import ConnectHandler
 from netmiko.ssh_exception import NetMikoTimeoutException, NetMikoAuthenticationException
-import re
 
-# Example device list
-devices = [
-    {
-        "device_type": "cisco_ios",
-        "ip": "192.168.1.1",
-        "username": "admin",
-        "use_keys": True,
-        "key_file": "/home/youruser/.ssh/id_rsa"
-    },
-    {
-        "device_type": "cisco_nxos",
-        "ip": "192.168.1.2",
-        "username": "admin",
-        "use_keys": True,
-        "key_file": "/home/youruser/.ssh/id_rsa"
-    },
-    {
-        "device_type": "cisco_asa",
-        "ip": "192.168.1.3",
-        "username": "admin",
-        "use_keys": True,
-        "key_file": "/home/youruser/.ssh/id_rsa"
-    },
+DEFAULT_KEY_PATH = os.path.expanduser("~/.ssh/id_rsa")
+
+DEVICE_INVENTORY = [
+    {"device_type": "cisco_ios", "ip": "192.168.1.1", "username": "admin", "use_keys": True, "key_file": DEFAULT_KEY_PATH},
+    {"device_type": "cisco_nxos", "ip": "192.168.1.2", "username": "admin", "use_keys": True, "key_file": DEFAULT_KEY_PATH},
+    {"device_type": "cisco_asa", "ip": "192.168.1.3", "username": "admin", "use_keys": True, "key_file": DEFAULT_KEY_PATH}
 ]
 
-def determine_platform(show_version_output):
-    """Returns platform type based on version string."""
-    if "NX-OS" in show_version_output:
+def configure_logging():
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s - %(message)s')
+
+def classify_platform(output: str) -> str:
+    if "NX-OS" in output:
         return "NX-OS"
-    elif "ASA" in show_version_output or "Adaptive Security Appliance" in show_version_output:
+    if "ASA" in output or "Adaptive Security Appliance" in output:
         return "ASA"
-    elif "Cisco IOS Software" in show_version_output:
+    if "Cisco IOS Software" in output:
         return "IOS"
-    else:
-        return "Unknown"
+    return "Unknown"
+
+def extract_hostname(output: str, fallback: str) -> str:
+    match = re.search(r"(\S+)\suptime", output)
+    return match.group(1) if match else fallback
+
+def fetch_device_info(device: Dict) -> Optional[Dict[str, str]]:
+    try:
+        logging.info(f"Connecting to {device['ip']}")
+        with ConnectHandler(**device) as conn:
+            output = conn.send_command("show version")
+            platform = classify_platform(output)
+            hostname = extract_hostname(output, fallback=device["ip"])
+            return {"Platform": platform, "Hostname": hostname, "IP": device["ip"]}
+    except (NetMikoTimeoutException, NetMikoAuthenticationException) as e:
+        logging.warning(f"Failed to connect to {device['ip']}: {e}")
+        return None
+
+def collect_platform_groups(devices: List[Dict], max_threads: int = 4) -> Dict[str, List[Dict[str, str]]]:
+    groups = defaultdict(list)
+    with ThreadPoolExecutor(max_workers=max_threads) as executor:
+        futures = [executor.submit(fetch_device_info, d) for d in devices]
+        for future in as_completed(futures):
+            result = future.result()
+            if result:
+                groups[result["Platform"]].append({"Hostname": result["Hostname"], "IP": result["IP"]})
+    return groups
+
+def export_to_csv(groups: Dict[str, List[Dict[str, str]]], filepath: str):
+    try:
+        with open(filepath, mode="w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["Platform", "Hostname", "IP"])
+            for platform, entries in groups.items():
+                for entry in entries:
+                    writer.writerow([platform, entry["Hostname"], entry["IP"]])
+        logging.info(f"Platform grouping saved to {filepath}")
+    except Exception as e:
+        logging.error(f"Error writing CSV: {e}")
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Group network devices by platform")
+    parser.add_argument("--output", default="device_platform_groups.csv", help="CSV output path")
+    parser.add_argument("--threads", type=int, default=4, help="Number of concurrent threads")
+    return parser.parse_args()
 
 def main():
-    platform_groups = defaultdict(list)
-
-    for device in devices:
-        try:
-            print(f"[+] Connecting to {device['ip']}...")
-            connection = ConnectHandler(**device)
-            output = connection.send_command("show version")
-            platform = determine_platform(output)
-            hostname_match = re.search(r"(\S+)\suptime", output)
-            hostname = hostname_match.group(1) if hostname_match else device["ip"]
-
-            platform_groups[platform].append({
-                "Hostname": hostname,
-                "IP": device["ip"]
-            })
-
-            connection.disconnect()
-
-        except (NetMikoTimeoutException, NetMikoAuthenticationException) as e:
-            print(f"[-] Failed to connect to {device['ip']}: {e}")
-
-    # Output CSV for visibility
-    with open("device_platform_groups.csv", mode="w", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow(["Platform", "Hostname", "IP"])
-        for platform, devices in platform_groups.items():
-            for entry in devices:
-                writer.writerow([platform, entry["Hostname"], entry["IP"]])
-
-    print("[+] Devices grouped by platform. Results saved to 'device_platform_groups.csv'")
+    configure_logging()
+    args = parse_arguments()
+    grouped = collect_platform_groups(DEVICE_INVENTORY, max_threads=args.threads)
+    export_to_csv(grouped, filepath=args.output)
 
 if __name__ == "__main__":
     main()
 
-#4 Parse serial numbers for asset tracking
+#4 Parse serial numbers for asset tracking / REFACTOR
 
 import csv
 import re
