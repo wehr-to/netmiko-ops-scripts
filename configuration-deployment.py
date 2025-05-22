@@ -245,7 +245,109 @@ def main():
 if __name__ == "__main__":
     main()
 
-# 5: 
+# 5: Deploy NTP server configs across all routers
+
+import csv
+from netmiko import ConnectHandler
+from netmiko.ssh_exception import NetMikoTimeoutException, NetMikoAuthenticationException
+
+# Replace with your actual NTP server(s)
+NTP_SERVERS = [
+    "ntp server 192.168.100.1",
+    "ntp server 192.168.100.2"
+]
+
+def configure_ntp(device_info):
+    device = {
+        "device_type": "cisco_ios",
+        "ip": device_info["ip"],
+        "username": device_info["username"],
+        "use_keys": True,
+        "key_file": device_info["key_file"],
+    }
+
+    try:
+        connection = ConnectHandler(**device)
+        hostname = connection.find_prompt().strip("#>")
+        print(f"[+] Connected to {hostname} ({device['ip']})")
+
+        # Enter configuration mode and apply NTP settings
+        output = connection.send_config_set(NTP_SERVERS)
+        print(f"[+] NTP configuration sent to {hostname}:\n{output}")
+
+        connection.save_config()
+        print(f"[+] Configuration saved on {hostname}.")
+        connection.disconnect()
+
+    except (NetMikoTimeoutException, NetMikoAuthenticationException) as e:
+        print(f"[-] Failed to connect to {device['ip']}: {e}")
+
+def main():
+    with open("ntp_devices.csv", mode="r") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            device_info = {
+                "ip": row["ip"],
+                "username": row["username"],
+                "key_file": row.get("key_file", "/home/youruser/.ssh/id_rsa")
+            }
+            configure_ntp(device_info)
+
+if __name__ == "__main__":
+    main()
+
+# 6: Push SNMP configurations to switches
+
+import csv
+from netmiko import ConnectHandler
+from netmiko.ssh_exception import NetMikoTimeoutException, NetMikoAuthenticationException
+
+# Define the SNMP configuration to apply
+snmp_config = [
+    "snmp-server community public RO",
+    "snmp-server community private RW",
+    "snmp-server location DataCenter1",
+    "snmp-server contact netadmin@example.com",
+]
+
+def push_snmp_config(device):
+    try:
+        connection = ConnectHandler(**device)
+        hostname = connection.find_prompt().strip("#>")
+        print(f"[+] Connected to {hostname} ({device['ip']})")
+
+        output = connection.send_config_set(snmp_config)
+        print(f"[+] SNMP configuration sent:\n{output}")
+
+        connection.save_config()
+        print(f"[+] Config saved on {hostname}.\n")
+        connection.disconnect()
+
+    except (NetMikoTimeoutException, NetMikoAuthenticationException) as e:
+        print(f"[-] Connection failed to {device['ip']}: {e}")
+
+def main():
+    with open("snmp_switches.csv", mode="r") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            device = {
+                "device_type": "cisco_ios",
+                "ip": row["ip"],
+                "username": row["username"],
+                "use_keys": True,
+                "key_file": row.get("key_file", "/home/youruser/.ssh/id_rsa")
+            }
+            push_snmp_config(device)
+
+if __name__ == "__main__":
+    main()
+
+# 7: Enable/disable specific interfaces in bulk
+# 8: Push AAA authentication config
+# 9: Set up logging servers on all core devices
+# 10: Apply a basic port-security config to all access ports
+# 11: Configure VLANs based on site template
+# 12: Deploy interface IP addresses from an Excel or YAML file
 
 
 
