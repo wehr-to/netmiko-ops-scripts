@@ -1,97 +1,71 @@
 #1 Create device inventory file from show version
 
 import csv
+import re
 from netmiko import ConnectHandler
 from netmiko.ssh_exception import NetMikoTimeoutException, NetMikoAuthenticationException
-import re
 
-# List of devices (could be loaded from CSV/YAML later)
-devices = [
-    {
-        "device_type": "cisco_ios",
-        "ip": "192.168.1.1",
-        "username": "admin",
-        "use_keys": True,
-        "key_file": "/home/youruser/.ssh/id_rsa"
-    },
-    {
-        "device_type": "cisco_ios",
-        "ip": "192.168.1.2",
-        "username": "admin",
-        "use_keys": True,
-        "key_file": "/home/youruser/.ssh/id_rsa"
-    },
+DEVICES = [
+    {"device_type": "cisco_ios", "ip": "192.168.1.1", "username": "admin", "use_keys": True, "key_file": "/home/youruser/.ssh/id_rsa"},
+    {"device_type": "cisco_ios", "ip": "192.168.1.2", "username": "admin", "use_keys": True, "key_file": "/home/youruser/.ssh/id_rsa"}
 ]
 
+def connect_device(device):
+    try:
+        print(f"[+] Connecting to {device['ip']}...")
+        connection = ConnectHandler(**device)
+        return connection
+    except (NetMikoTimeoutException, NetMikoAuthenticationException) as e:
+        print(f"[!] Connection failed for {device['ip']}: {e}")
+        return None
+
 def parse_show_version(output):
-    """Extracts hostname, model, version, and serial from 'show version' output."""
-    hostname = None
-    model = None
-    version = None
-    serial = None
+    """Parses show version output for hostname, model, version, and serial."""
+    hostname = re.search(r"(\S+)\suptime", output)
+    model = re.search(r"[Cc]isco\s+(\S+)\s+\(.+\)\s+processor", output)
+    version = re.search(r"Cisco IOS Software.*, Version\s+([\S]+)", output)
+    serial = re.search(r"System serial number\s+:\s+(\S+)", output) or re.search(r"Processor board ID\s+(\S+)", output)
 
-    # Hostname from prompt or from config
-    hostname_match = re.search(r"(\S+)\suptime", output)
-    if hostname_match:
-        hostname = hostname_match.group(1)
+    return {
+        "Hostname": hostname.group(1) if hostname else "Unknown",
+        "Model": model.group(1) if model else "Unknown",
+        "Version": version.group(1) if version else "Unknown",
+        "Serial Number": serial.group(1) if serial else "Unknown"
+    }
 
-    # Model
-    model_match = re.search(r"[Cc]isco\s+(\S+)\s+\(.+\)\s+processor", output)
-    if model_match:
-        model = model_match.group(1)
-
-    # Version
-    version_match = re.search(r"Cisco IOS Software.*, Version\s+([\S]+)", output)
-    if version_match:
-        version = version_match.group(1)
-
-    # Serial Number
-    serial_match = re.search(r"System serial number\s+:\s+(\S+)", output)
-    if serial_match:
-        serial = serial_match.group(1)
-    else:
-        # fallback for older formats
-        serial_match = re.search(r"Processor board ID\s+(\S+)", output)
-        if serial_match:
-            serial = serial_match.group(1)
-
-    return hostname, model, version, serial
-
-def main():
-    inventory_data = []
+def collect_inventory(devices):
+    inventory = []
 
     for device in devices:
-        try:
-            print(f"[+] Connecting to {device['ip']}...")
-            connection = ConnectHandler(**device)
-            output = connection.send_command("show version")
-            hostname, model, version, serial = parse_show_version(output)
-            print(f"[+] Retrieved info from {hostname} ({device['ip']})")
+        conn = connect_device(device)
+        if not conn:
+            continue
 
-            inventory_data.append({
-                "Hostname": hostname,
-                "IP": device["ip"],
-                "Model": model,
-                "Version": version,
-                "Serial Number": serial
-            })
+        output = conn.send_command("show version")
+        parsed = parse_show_version(output)
+        parsed["IP"] = device["ip"]
+        inventory.append(parsed)
 
-            connection.disconnect()
+        conn.disconnect()
+        print(f"[+] Collected data from {parsed['Hostname']}")
 
-        except (NetMikoTimeoutException, NetMikoAuthenticationException) as e:
-            print(f"[-] Failed to connect to {device['ip']}: {e}")
+    return inventory
 
-    # Write to CSV
-    with open("device_inventory.csv", mode="w", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=["Hostname", "IP", "Model", "Version", "Serial Number"])
+def write_inventory_to_csv(data, filename="device_inventory.csv"):
+    fieldnames = ["Hostname", "IP", "Model", "Version", "Serial Number"]
+    with open(filename, "w", newline="") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
-        for row in inventory_data:
-            writer.writerow(row)
+        writer.writerows(data)
+    print(f"[+] Inventory written to {filename}")
 
-    print("[+] Inventory file saved as 'device_inventory.csv'")
+# Single entrypoint at the bottom — clean and standard
+def main():
+    inventory = collect_inventory(DEVICES)
+    write_inventory_to_csv(inventory)
 
-if __name__ == "__main__":
-    main()
+main()
+
 
 #2 Generate topology summary (hostname, IP, model)
 
