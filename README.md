@@ -3,16 +3,6 @@ A collection of 50+ real-world network automation scripts using Netmiko. Built t
 
 Future Scripts: 
 
-🔧 Configuration & Deployment
-Deploy NTP server config across all routers
-Push SNMP configuration to switches
-Enable/disable specific interfaces in bulk
-Push AAA authentication config
-Set up logging servers on all core devices
-Apply a basic port-security config to all access ports
-Configure VLANs based on site template
-Deploy interface IP addresses from an Excel or YAML file
-
 🛡️ Security & Hardening 
 Disable unused services (CDP, HTTP, finger)
 Push ACLs to edge routers
