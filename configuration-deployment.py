@@ -44,7 +44,7 @@ def backup_running_config(device):
 if __name__ == "__main__":
     backup_running_config(device)
 
-# Push a standardized banner to all devices
+# 2: Push a standardized banner to all devices
 # Script is cisco specific 
 
 from netmiko import ConnectHandler
@@ -80,6 +80,109 @@ def push_banner(device, message):
 
 if __name__ == "__main__":
     push_banner(device, banner_message)
+
+# 3:  Automate hostname updates from a CSV (cisco specific)
+
+# CSV Example
+ip,username,password,new_hostname
+192.168.1.1,admin,cisco123,R1
+192.168.1.2,admin,cisco123,R2
+
+import csv
+from netmiko import ConnectHandler
+from netmiko.ssh_exception import NetMikoAuthenticationException, NetMikoTimeoutException
+
+def update_hostname(ip, username, password, new_hostname):
+    device = {
+        "device_type": "cisco_ios",
+        "ip": ip,
+        "username": username,
+        "password": password,
+    }
+
+    try:
+        connection = ConnectHandler(**device)
+        old_prompt = connection.find_prompt()
+        print(f"[+] Connected to {old_prompt.strip()} ({ip})")
+
+        # Enter config mode and update hostname
+        commands = [
+            f"hostname {new_hostname}"
+        ]
+        connection.send_config_set(commands)
+
+        # Save the config
+        connection.save_config()
+
+        print(f"[+] Hostname changed to {new_hostname} and saved.")
+        connection.disconnect()
+    except (NetMikoTimeoutException, NetMikoAuthenticationException) as e:
+        print(f"[-] Failed to connect to {ip}: {e}")
+
+def main():
+    with open("hostnames.csv", mode="r") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            ip = row["ip"]
+            username = row["username"]
+            password = row["password"]
+            new_hostname = row["new_hostname"]
+
+            update_hostname(ip, username, password, new_hostname)
+
+if __name__ == "__main__":
+    main()
+
+# SSH Key rather than using a password
+
+# CSV example
+ip,username,new_hostname,key_file
+192.168.1.1,admin,R1,/home/youruser/.ssh/id_rsa
+192.168.1.2,admin,R2,/home/youruser/.ssh/id_rsa
+
+import csv
+from netmiko import ConnectHandler
+from netmiko.ssh_exception import NetMikoAuthenticationException, NetMikoTimeoutException
+
+def update_hostname(ip, username, new_hostname, key_file):
+    device = {
+        "device_type": "cisco_ios",
+        "ip": ip,
+        "username": username,
+        "use_keys": True,
+        "key_file": key_file,
+    }
+
+    try:
+        connection = ConnectHandler(**device)
+        old_prompt = connection.find_prompt()
+        print(f"[+] Connected to {old_prompt.strip()} ({ip})")
+
+        # Change hostname and save
+        commands = [
+            f"hostname {new_hostname}"
+        ]
+        connection.send_config_set(commands)
+        connection.save_config()
+
+        print(f"[+] Hostname changed to {new_hostname} and saved.")
+        connection.disconnect()
+    except (NetMikoTimeoutException, NetMikoAuthenticationException) as e:
+        print(f"[-] Connection failed to {ip}: {e}")
+
+def main():
+    with open("hostnames.csv", mode="r") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            ip = row["ip"]
+            username = row["username"]
+            new_hostname = row["new_hostname"]
+            key_file = row.get("key_file", "/home/youruser/.ssh/id_rsa")  # default fallback
+
+            update_hostname(ip, username, new_hostname, key_file)
+
+if __name__ == "__main__":
+    main()
 
 
 
