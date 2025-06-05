@@ -1,0 +1,40 @@
+Do's: 
+
+1: Version Control
+- Commit often 
+- Write clear commit messages: Ex: Added SNMPv3 config automation with exception handling
+
+2: Use modular code
+- Break scripts into classes and functions when appropriate 
+- Isolate logic, one function for connecting, one for pushing a config, one for validation 
+
+3: Structure projects into a singular file
+- Why? Engineers do *not* dump all code into a singular file, big no no 
+
+4: Use external data files
+- Do use YAML, JSON, CSV, or Excel to load device IPs, credentials, and parameters
+- Why? Hardcoding device info is lazy and malpractice
+
+5: Error handling is a must 
+- Wrap connections and commands in try/except
+Why? Networks are fragile, handle timeouts, auth failures, and bad commands 
+
+6: Build in validation
+- Check what you pushed actually worked 
+Example: after enabling a VLAN, show vlan brief and parse it to confirm 
+Why? Engineers verify, scripts that cannot confirm success or a tangible outcome are liabilities in an enterprise environment 
+
+7: Use a .gitignore and protect secrets 
+- Create a .gitignore to exclude passwords, .env files, and logs 
+Why? Uploading actual credentials to GitHub is a no no 
+
+8: Doc your work
+- Use docstrings, readme's, and inline comments when needed
+Why? You will forget what you wrote after a few months, document it all 
+
+9: Use logging over print
+import logging > print()
+Why? real world scripts should log events be it successes, failures, and timestamps 
+
+10: Test on sims or non-production first 
+Why? i should not have to explain this (BIG no no) 
