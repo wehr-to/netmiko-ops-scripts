@@ -1,0 +1,1 @@
+# show ip ospf database
