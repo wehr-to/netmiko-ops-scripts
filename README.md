@@ -27,7 +27,7 @@ These scripts are designed for Cisco CLI environments and solve day-to-day opera
 | Export MAC Tables for Endpoint Mapping | `device_mapping/export_mac_tables_for_endpoint_mapping.py` |
 | Verify OSPF Timers and Area Configs    | `protocols/ospf/validate_ospf_areas.py`                    |
 
-✅ Requirements
+## ✅ Requirements
 - Python 3.8+
 - Netmiko
 - pyyaml, openpyxl (for YAML/Excel input)
