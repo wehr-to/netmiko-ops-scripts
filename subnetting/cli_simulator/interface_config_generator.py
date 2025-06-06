@@ -1,0 +1,1 @@
+# Auto-generate config stubs
