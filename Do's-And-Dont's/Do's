@@ -8,7 +8,7 @@ Do's of network automation
 - Break scripts into classes and functions when appropriate 
 - Isolate logic, one function for connecting, one for pushing a config, one for validation 
 
-3: Structure projects into a singular file
+3: Structure projects properly
 - Why? Engineers do *not* dump all code into a singular file, big no no 
 
 4: Use external data files
