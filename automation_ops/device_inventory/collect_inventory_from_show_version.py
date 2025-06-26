@@ -1,87 +1,94 @@
+import argparse
 import csv
 import re
-import os
-import logging
-import argparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from netmiko import ConnectHandler
-from netmiko.ssh_exception import NetMikoTimeoutException, NetMikoAuthenticationException
+from typing import List, Dict
+from logger import setup_logger
+from conn.netmiko_conn import connect_device_with_retries
+from parsers.inventory_parser import load_yaml_inventory, validate_ip
 
-DEFAULT_KEY_PATH = os.path.expanduser("~/.ssh/id_rsa")
 
-DEVICES = [
-    {"device_type": "cisco_ios", "ip": "192.168.1.1", "username": "admin", "use_keys": True, "key_file": DEFAULT_KEY_PATH},
-    {"device_type": "cisco_ios", "ip": "192.168.1.2", "username": "admin", "use_keys": True, "key_file": DEFAULT_KEY_PATH}
-]
+def parse_show_version(output: str) -> Dict[str, str]:
+    parsed = {}
+    model_match = re.search(r"Model number\s*:\s*(\S+)", output)
+    version_match = re.search(r"Version\s+(\S+),", output)
+    serial_match = re.search(r"System serial number\s*:\s*(\S+)", output)
 
-def setup_logger():
-    logging.basicConfig(
-        level=logging.INFO,
-        format='[%(asctime)s] %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
+    if model_match:
+        parsed["Model"] = model_match.group(1)
+    if version_match:
+        parsed["Version"] = version_match.group(1)
+    if serial_match:
+        parsed["Serial"] = serial_match.group(1)
 
-def connect_and_collect(device: dict) -> dict:
+    return parsed
+
+
+def collect_inventory(device: Dict[str, str], logger, results: List[Dict[str, str]]) -> None:
+    ip = device["host"]
+    hostname = device.get("hostname", ip)
     try:
-        logging.info(f"Connecting to {device['ip']}...")
-        with ConnectHandler(**device) as conn:
-            output = conn.send_command("show version")
-            parsed = parse_show_version(output)
-            parsed["IP"] = device["ip"]
-            logging.info(f"Collected data from {parsed['Hostname']}")
-            return parsed
-    except (NetMikoTimeoutException, NetMikoAuthenticationException) as e:
-        logging.warning(f"Connection failed for {device['ip']}: {e}")
-        return {"Hostname": "Failed", "IP": device["ip"], "Model": "N/A", "Version": "N/A", "Serial Number": "N/A"}
+        ip, output = connect_device_with_retries(
+            device,
+            commands=["show version"],
+            config_commands=[],
+            retries=2,
+            delay=2,
+            debug=False
+        )
+        parsed = parse_show_version(output)
+        parsed.update({"IP": ip, "Hostname": hostname, "Status": "SUCCESS"})
+        logger.info(f"{ip}: Inventory collected")
     except Exception as e:
-        logging.error(f"Unexpected error with {device['ip']}: {e}")
-        return {"Hostname": "Error", "IP": device["ip"], "Model": "N/A", "Version": "N/A", "Serial Number": "N/A"}
+        parsed = {"IP": ip, "Hostname": hostname, "Status": f"ERROR: {e}"}
+        logger.error(f"{ip}: Failed to collect inventory - {e}")
+    results.append(parsed)
 
-def parse_show_version(output: str) -> dict:
-    hostname = re.search(r"(\S+)\suptime", output)
-    model = re.search(r"[Cc]isco\s+(\S+)\s+\(.+\)\s+processor", output)
-    version = re.search(r"Cisco IOS Software.*, Version\s+([\S]+)", output)
-    serial = re.search(r"System serial number\s+:\s+(\S+)", output) or \
-             re.search(r"Processor board ID\s+(\S+)", output)
 
-    return {
-        "Hostname": hostname.group(1) if hostname else "Unknown",
-        "Model": model.group(1) if model else "Unknown",
-        "Version": version.group(1) if version else "Unknown",
-        "Serial Number": serial.group(1) if serial else "Unknown"
-    }
+def export_to_csv(data: List[Dict[str, str]], output: str):
+    fields = ["IP", "Hostname", "Model", "Version", "Serial", "Status"]
+    with open(output, 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(data)
 
-def collect_inventory(devices: list, max_workers: int = 5) -> list:
-    inventory = []
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_device = {executor.submit(connect_and_collect, device): device for device in devices}
-        for future in as_completed(future_to_device):
-            result = future.result()
-            inventory.append(result)
-    return inventory
-
-def write_inventory_to_csv(data: list, filename: str):
-    fieldnames = ["Hostname", "IP", "Model", "Version", "Serial Number"]
-    try:
-        with open(filename, "w", newline="") as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(data)
-        logging.info(f"Inventory written to {filename}")
-    except Exception as e:
-        logging.error(f"Failed to write CSV: {e}")
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="Collect Cisco device inventory and save to CSV.")
-    parser.add_argument("--output", default="device_inventory.csv", help="CSV filename to save inventory")
-    parser.add_argument("--threads", type=int, default=5, help="Number of parallel threads")
-    return parser.parse_args()
 
 def main():
-    setup_logger()
-    args = parse_args()
-    inventory = collect_inventory(DEVICES, max_workers=args.threads)
-    write_inventory_to_csv(inventory, filename=args.output)
+    parser = argparse.ArgumentParser(description="Collect device inventory from show version")
+    parser.add_argument('--inventory', required=True, help="Path to YAML inventory")
+    parser.add_argument('--output', required=True, help="Output CSV file path")
+    parser.add_argument('--log_level', default="INFO")
+    args = parser.parse_args()
 
-if __name__ == "__main__":
+    logger = setup_logger("collect_inventory", level=args.log_level)
+    devices = load_yaml_inventory(args.inventory)
+    devices = [d for d in devices if validate_ip(d)]
+
+    results = []
+    for device in devices:
+        collect_inventory(device, logger, results)
+
+    export_to_csv(results, args.output)
+    logger.info(f"Inventory CSV saved to {args.output}")
+
+
+if __name__ == '__main__':
     main()
+
+#1: CLI Args
+# --inventory: YAML input
+# --output: path to save CSV
+# --log_level
+
+#2: Load Devices
+# - Validate IPs
+
+#3: For Each Device
+# - Run 'show version' via Netmiko
+# - Parse model/version/serial via regex
+# - Log status and add to results list
+
+#4: Write results to CSV
+
+#5: main()
+
+
