@@ -1,4 +1,4 @@
-These are the DONT's of network automation, if you do these things, it's bad luck for 7 years. Listen to me 
+These are the DONT's of network automation, if you do these things, it's bad luck for 7 years
 
 1: Don't hardcode IPs, passwords, or CLI commands 
 - Makes your script rigid and unscalable 
@@ -9,7 +9,7 @@ These are the DONT's of network automation, if you do these things, it's bad luc
 
 3: Do not ignore return codes or command output 
 - If a command fails and you do not check you will never know
-if you do not error check, you will not have credibility
+if you do not error check, this makes you look not so great
 
 4: Don’t Run Code Without if __name__ == "__main__" Block
 Your script is now safe and modular
