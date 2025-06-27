@@ -1,4 +1,4 @@
-# Netmiko Ops Scripts
+# Netmiko Ops Scripts ![Status](https://img.shields.io/badge/status-complete-brightgreen)
 
 A comprehensive collection of real-world network automation scripts built with Python and Netmiko.
 
