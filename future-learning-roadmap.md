@@ -1,4 +1,4 @@
-# Network Automation Learning Path
+# Network Automation Learning Path (future improvements)
 
 ## Phase 1: Foundation
 
