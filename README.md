@@ -30,7 +30,7 @@ These scripts are designed for Cisco CLI environments and solve day-to-day opera
 ## Requirements
 - Python 3.8+
 - Netmiko
-- pyyaml, openpyxl (for YAML/Excel input)
+- pyyaml, pandas, openpyxl, tabulate
 - argparse, logging (built-in Python modules)
 Install all dependencies:
 pip install -r requirements.txt

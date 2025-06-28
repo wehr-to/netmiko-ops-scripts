@@ -1,0 +1,5 @@
+netmiko
+pyyaml
+pandas
+openpyxl
+tabulate
