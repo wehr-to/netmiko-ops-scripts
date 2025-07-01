@@ -19,7 +19,7 @@ import argparse
 import csv
 import ipaddress
 from typing import List, Dict
-from logger import setup_logger
+from utils.logger import setup_logger
 
 def calculate_wildcard_mask(mask: str) -> str:
     try:

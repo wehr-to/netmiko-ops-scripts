@@ -5,7 +5,7 @@ import csv
 import re
 from typing import List, Dict
 from datetime import timedelta
-from logger import setup_logger
+from utils.logger import setup_logger
 from conn.netmiko_conn import connect_device_with_retries
 from parsers.inventory_parser import load_yaml_inventory, validate_ip
 

@@ -19,7 +19,7 @@ import argparse
 import csv
 import ipaddress
 from typing import List, Dict
-from logger import setup_logger
+from utils.logger import setup_logger
 
 def cidr_to_netmask(cidr: str) -> str:
     try:
