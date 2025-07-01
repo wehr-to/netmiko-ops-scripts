@@ -6,7 +6,7 @@ import ipaddress
 import csv
 import json
 from logger import setup_logger
-from conn.netmiko_conn import connect_device_with_retries
+from utils.netmiko_conn import connect_device_with_retries
 
 
 def parse_arp_output(output: str) -> List[Tuple[str, str]]:
@@ -117,7 +117,7 @@ def main():
     parser.add_argument('--json', help="Export results to JSON file")
     args = parser.parse_args()
 
-    from parsers.inventory_parser import load_yaml_inventory, validate_ip
+    from utils.input_parser import load_yaml_inventory, validate_ip
     devices = load_yaml_inventory(args.file)
     devices = [d for d in devices if validate_ip(d)]
 

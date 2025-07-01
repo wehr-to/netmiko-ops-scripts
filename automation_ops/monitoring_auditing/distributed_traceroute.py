@@ -6,8 +6,8 @@ import csv
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict
 from logger import setup_logger
-from conn.netmiko_conn import connect_device_with_retries
-from parsers.inventory_parser import load_yaml_inventory, validate_ip
+from utils.netmiko_conn import connect_device_with_retries
+from utils.input_parser import load_yaml_inventory, validate_ip
 
 
 def build_traceroute_commands(targets: List[str]) -> List[str]:
