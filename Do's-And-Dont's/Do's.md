@@ -37,4 +37,4 @@ import logging > print()
 Why? real world scripts should log events be it successes, failures, and timestamps 
 
 10: Test on sims or non-production first 
-Why? i should not have to explain this (BIG no no) 
+Why? I should not have to explain this (BIG no-no)
