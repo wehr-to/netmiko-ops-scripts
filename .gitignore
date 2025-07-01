@@ -1,0 +1,15 @@
+# Logs
+*.log
+logs/
+log/
+
+# Environment files
+.env
+*.env
+venv/
+.envrc
+
+# Backups
+*.bak
+*.backup
+*~
