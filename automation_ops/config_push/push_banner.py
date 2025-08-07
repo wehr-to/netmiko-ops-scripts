@@ -3,8 +3,8 @@ import yaml
 import re
 from typing import Dict
 from logger import setup_logger
-from conn.netmiko_conn import connect_device_with_retries
-from parsers.inventory_parser import load_yaml_inventory, validate_ip
+from utils.netmiko_conn import connect_device_with_retries
+from utils.input_parser import load_yaml_inventory, validate_ip
 
 
 def load_banner_template(template_file: str) -> str:

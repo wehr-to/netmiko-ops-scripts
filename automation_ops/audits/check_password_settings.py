@@ -3,8 +3,8 @@ import csv
 import re
 from typing import Dict, List
 from logger import setup_logger
-from conn.netmiko_conn import connect_device_with_retries
-from parsers.inventory_parser import load_yaml_inventory, validate_ip
+from utils.netmiko_conn import connect_device_with_retries
+from utils.input_parser import load_yaml_inventory, validate_ip
 
 def audit_password_settings(device: Dict[str, str], logger, exclude_users: List[str]) -> Dict[str, List[str]]:
     ip, output = connect_device_with_retries(
