@@ -2,7 +2,11 @@
 
 import time
 from typing import Union, List, Tuple, Dict
-from netmiko import ConnectHandler, NetMikoTimeoutException, NetMikoAuthenticationException
+from netmiko import (
+    ConnectHandler,
+    NetMikoTimeoutException,
+    NetMikoAuthenticationException,
+)
 
 
 def connect_device_with_retries(
@@ -11,11 +15,15 @@ def connect_device_with_retries(
     retries: int = 3,
     delay: int = 2,
     config_commands: Union[None, str, List[str]] = None,
-    debug: bool = False
-) -> Tuple[str, str]:
+    debug: bool = False,
+    return_conn: bool = False,
+) -> Union[Tuple[str, str], ConnectHandler]:
     """
     Attempts to connect to a device with retries and send one or more commands.
-    Returns tuple: (device IP, result status or command output)
+    When ``return_conn`` is ``False`` (default) the function behaves as before
+    and returns a tuple ``(device IP, output)``. If ``return_conn`` is ``True``
+    a live ``ConnectHandler`` object is returned and the caller is responsible
+    for closing the connection.
     """
     ip = device.get("host")
     attempt = 0
@@ -40,6 +48,10 @@ def connect_device_with_retries(
             if config_commands:
                 output.append(conn.send_config_set(config_commands))
 
+            if return_conn:
+                # Caller handles disconnect
+                return conn
+
             conn.disconnect()
             return ip, "\n".join(output)
 
@@ -48,13 +60,19 @@ def connect_device_with_retries(
                 print(f"[DEBUG] Connection error on {ip}: {str(e)}")
             attempt += 1
             if attempt >= retries:
+                if return_conn:
+                    raise
                 return ip, f"Failed after {retries} attempts: {str(e)}"
             time.sleep(delay)
         except Exception as e:
             if debug:
                 print(f"[DEBUG] Unhandled exception on {ip}: {str(e)}")
+            if return_conn:
+                raise
             return ip, f"Unhandled exception: {str(e)}"
 
+    if return_conn:
+        raise Exception("Unknown failure")
     return ip, "Unknown failure"
 
 #1 - Function Inputs:
