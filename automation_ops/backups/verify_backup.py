@@ -4,7 +4,7 @@ import gzip
 import re
 import csv
 from typing import List
-from logger import setup_logger
+from utils.logger import setup_logger
 
 
 def list_backup_files(directory: Path, extension: str = ".gz") -> List[Path]:

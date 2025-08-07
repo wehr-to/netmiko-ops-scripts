@@ -4,7 +4,7 @@ import csv
 from collections import defaultdict
 from typing import Dict, List
 from pathlib import Path
-from logger import setup_logger
+from utils.logger import setup_logger
 
 
 def load_inventory(file_path: str) -> List[Dict[str, str]]:

@@ -5,7 +5,7 @@ from netmiko.ssh_exception import NetMikoTimeoutException, NetMikoAuthentication
 import ipaddress
 import csv
 import json
-from logger import setup_logger
+from utils.logger import setup_logger
 from conn.netmiko_conn import connect_device_with_retries
 
 

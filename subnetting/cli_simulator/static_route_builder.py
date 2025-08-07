@@ -19,7 +19,7 @@ import argparse
 import csv
 import yaml
 from typing import List, Dict
-from logger import setup_logger
+from utils.logger import setup_logger
 
 def load_routes_file(file_path: str) -> List[Dict[str, str]]:
     if file_path.endswith('.yaml') or file_path.endswith('.yml'):

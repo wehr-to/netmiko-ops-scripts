@@ -19,7 +19,7 @@ import argparse
 import csv
 import ipaddress
 from typing import List, Dict
-from logger import setup_logger
+from utils.logger import setup_logger
 
 def mask_to_cidr(ip: str, mask: str) -> str:
     try:

@@ -19,7 +19,7 @@ import argparse
 import csv
 import ipaddress
 from typing import List, Dict
-from logger import setup_logger
+from utils.logger import setup_logger
 
 def abbreviate_ipv6_address(address: str) -> str:
     try:
