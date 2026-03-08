@@ -1,6 +1,6 @@
 # Netmiko Ops Scripts 
 
-A comprehensive collection of real-world network automation scripts built with Python and Netmiko.
+A collection of real-world network automation scripts built with Python and Netmiko.
 
 These scripts are designed for Cisco CLI environments and solve day-to-day operational problems across enterprise networks, from backups and configuration pushes to audits, inventory enrichment, and control plane validation.
 
