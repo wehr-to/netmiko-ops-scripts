@@ -35,6 +35,14 @@ These scripts are designed for Cisco CLI environments and solve day-to-day opera
 Install all dependencies:
 pip install -r requirements.txt
 
+## Testing
+
+Run the unit tests with [pytest](https://docs.pytest.org/):
+
+```bash
+pytest
+```
+
 
 
 
