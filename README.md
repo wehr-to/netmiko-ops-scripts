@@ -22,7 +22,7 @@ These scripts are designed for Cisco CLI environments and solve day-to-day opera
 | Push SNMPv3 Config                     | `config_push/push_snmpv3_config.py`                        |
 | Backup All Running Configs             | `backups/backup_running_config.py`                         |
 | Detect BGP Neighbor Failures           | `monitoring_auditing/check_bgp_neighbor_states.py`         |
-| Enforce Login Banners                  | `config_push/push_standard_banner.py`                      |
+| Enforce Login Banners                  | `config_push/push_banner.py`                               |
 | Group Devices by Platform              | `device_inventory/group_devices_by_platform.py`            |
 | Export MAC Tables for Endpoint Mapping | `device_mapping/export_mac_tables_for_endpoint_mapping.py` |
 | Verify OSPF Timers and Area Configs    | `protocols/ospf/validate_ospf_areas.py`                    |
