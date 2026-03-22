@@ -20,8 +20,8 @@ import argparse
 import csv
 from typing import List, Dict
 from logger import setup_logger
-from conn.netmiko_conn import connect_device_with_retries
-from parsers.inventory_parser import load_yaml_inventory, validate_ip
+from utils.netmiko_conn import connect_device_with_retries
+from utils.input_parser import load_yaml_inventory, validate_ip
 
 def generate_tag_commands(vlan_id: str, interfaces: List[str]) -> List[str]:
     commands = []

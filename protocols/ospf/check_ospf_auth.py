@@ -22,8 +22,8 @@ import csv
 import re
 from typing import List, Dict
 from logger import setup_logger
-from conn.netmiko_conn import connect_device_with_retries
-from parsers.inventory_parser import load_yaml_inventory, validate_ip
+from utils.netmiko_conn import connect_device_with_retries
+from utils.input_parser import load_yaml_inventory, validate_ip
 
 def parse_ospf_auth(output: str) -> List[Dict[str, str]]:
     results = []
