@@ -1,7 +1,7 @@
 import argparse
 import yaml
 from typing import Dict, List
-from logger import setup_logger
+from utils.logger import setup_logger
 from conn.netmiko_conn import connect_device_with_retries
 from parsers.inventory_parser import load_yaml_inventory, validate_ip
 

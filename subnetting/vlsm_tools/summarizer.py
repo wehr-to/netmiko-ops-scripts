@@ -19,7 +19,7 @@ import argparse
 import csv
 from collections import Counter
 from typing import List, Dict
-from logger import setup_logger
+from utils.logger import setup_logger
 
 def summarize_csv(file_path: str) -> Dict[str, str]:
     summary = {"File": file_path}

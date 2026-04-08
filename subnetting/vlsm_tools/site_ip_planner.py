@@ -20,7 +20,7 @@ import csv
 import ipaddress
 import yaml
 from typing import List, Dict
-from logger import setup_logger
+from utils.logger import setup_logger
 
 def load_site_plan(file_path: str) -> List[Dict[str, str]]:
     with open(file_path, 'r') as f:
